@@ -15,6 +15,7 @@ services:
 
   # Init apunta a PRIND_DATA_DIR (chown sobre la carpeta persistente)
   init:
+    command: chown -R 1000:1000 /prind
     volumes:
       - ${PRIND_DATA_DIR}:/prind
 
