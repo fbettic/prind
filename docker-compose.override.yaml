@@ -4,6 +4,14 @@ services:
     profiles:
       - disabled
 
+  fluidd:
+    profiles:
+      - disabled
+
+  octoprint:
+    profiles:
+      - disabled
+
   # Mainsail SOLO por host
   mainsail:
     profiles: []
