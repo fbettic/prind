@@ -13,12 +13,12 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-net"
       # Router principal (HTTPS)
-      - "traefik.http.routers.mainsail.rule=Host(`printer.fbettic.dev`)"
+      - "traefik.http.routers.mainsail.rule=Host(`${PRINTER_HOST}`)"
       - "traefik.http.routers.mainsail.entrypoints=websecure"
       - "traefik.http.routers.mainsail.tls=true"
       - "traefik.http.routers.mainsail.tls.certresolver=cloudflare"
       # Redirección manual (Aquí sí, porque es solo VPN)
-      - "traefik.http.routers.mainsail-http.rule=Host(`printer.fbettic.dev`)"
+      - "traefik.http.routers.mainsail-http.rule=Host(`${PRINTER_HOST}`)"
       - "traefik.http.routers.mainsail-http.entrypoints=web"
       - "traefik.http.routers.mainsail-http.middlewares=redirect-to-https@docker"
       # Definimos el puerto usando el nombre por defecto del contenedor
@@ -33,13 +33,13 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-net"
       # Router principal (HTTPS)
-      - "traefik.http.routers.moonraker.rule=Host(`printer.fbettic.dev`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
+      - "traefik.http.routers.moonraker.rule=Host(`${PRINTER_HOST}`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
       - "traefik.http.routers.moonraker.entrypoints=websecure"
       - "traefik.http.routers.moonraker.tls=true"
       - "traefik.http.routers.moonraker.tls.certresolver=cloudflare"
       - "traefik.http.routers.moonraker.priority=100"
       # Redirección manual
-      - "traefik.http.routers.moonraker-http.rule=Host(`printer.fbettic.dev`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
+      - "traefik.http.routers.moonraker-http.rule=Host(`${PRINTER_HOST}`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
       - "traefik.http.routers.moonraker-http.entrypoints=web"
       - "traefik.http.routers.moonraker-http.middlewares=redirect-to-https@docker"
       # Definimos el puerto usando el nombre por defecto del contenedor
