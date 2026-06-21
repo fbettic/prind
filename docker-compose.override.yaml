@@ -1,27 +1,49 @@
-## Ustreamer base Service
-x-ustreamer-svc: &ustreamer-svc
-  image: mkuf/ustreamer:latest
-  restart: unless-stopped
-  command: >
-    --host=0.0.0.0
-    --port=8080
-    --slowdown
-    --device=/dev/webcam
-    --resolution=1280x960
-    --format=MJPEG
-    --desired-fps=30
-
-## Add your personal config here
 services:
-  webcam:
-    <<: *ustreamer-svc
-    devices:
-      - /dev/video0:/dev/webcam
+  # Desactivar Traefik interno de prind
+  traefik:
+    profiles:
+      - disabled
+
+  # Mainsail SOLO por host
+  mainsail:
+    profiles: []
+    networks:
+      - traefik-net
     labels:
-      org.prind.service: webcam
-      traefik.enable: true
-      traefik.http.services.webcam.loadbalancer.server.port: 8080
-      traefik.http.routers.webcam.rule: PathPrefix(`/webcam`)
-      traefik.http.routers.webcam.entrypoints: web
-      traefik.http.middlewares.webcam.stripprefix.prefixes: /webcam
-      traefik.http.routers.webcam.middlewares: webcam
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net"
+      # Router principal (HTTPS)
+      - "traefik.http.routers.mainsail.rule=Host(`printer.fbettic.dev`)"
+      - "traefik.http.routers.mainsail.entrypoints=websecure"
+      - "traefik.http.routers.mainsail.tls=true"
+      - "traefik.http.routers.mainsail.tls.certresolver=cloudflare"
+      # Redirección manual (Aquí sí, porque es solo VPN)
+      - "traefik.http.routers.mainsail-http.rule=Host(`printer.fbettic.dev`)"
+      - "traefik.http.routers.mainsail-http.entrypoints=web"
+      - "traefik.http.routers.mainsail-http.middlewares=redirect-to-https@docker"
+      # Definimos el puerto usando el nombre por defecto del contenedor
+      - "traefik.http.services.mainsail.loadbalancer.server.port=80"
+
+  # Moonraker SOLO bajo el MISMO host de Mainsail
+  moonraker:
+    profiles: []
+    networks:
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net"
+      # Router principal (HTTPS)
+      - "traefik.http.routers.moonraker.rule=Host(`printer.fbettic.dev`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
+      - "traefik.http.routers.moonraker.entrypoints=websecure"
+      - "traefik.http.routers.moonraker.tls=true"
+      - "traefik.http.routers.moonraker.tls.certresolver=cloudflare"
+      - "traefik.http.routers.moonraker.priority=100"
+      # Redirección manual
+      - "traefik.http.routers.moonraker-http.rule=Host(`printer.fbettic.dev`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
+      - "traefik.http.routers.moonraker-http.entrypoints=web"
+      - "traefik.http.routers.moonraker-http.middlewares=redirect-to-https@docker"
+      # Definimos el puerto usando el nombre por defecto del contenedor
+      - "traefik.http.services.moonraker.loadbalancer.server.port=7125"
+networks:
+  traefik-net:
+    external: true
