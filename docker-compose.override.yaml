@@ -4,17 +4,22 @@ services:
     profiles:
       - disabled
 
-  fluidd:
-    profiles:
-      - disabled
+  # Klipper con volúmenes persistentes en PRIND_DATA_DIR
+  klipper:
+    volumes:
+      - /dev:/dev
+      - ${PRIND_DATA_DIR}/config:/opt/printer_data/config
+      - run:/opt/printer_data/run
+      - ${PRIND_DATA_DIR}/gcodes:/opt/printer_data/gcodes
+      - log:/opt/printer_data/logs
 
-  octoprint:
-    profiles:
-      - disabled
+  # Init apunta a PRIND_DATA_DIR (chown sobre la carpeta persistente)
+  init:
+    volumes:
+      - ${PRIND_DATA_DIR}:/prind
 
   # Mainsail SOLO por host
   mainsail:
-    profiles: []
     networks:
       - traefik-net
     labels:
@@ -25,33 +30,38 @@ services:
       - "traefik.http.routers.mainsail.entrypoints=websecure"
       - "traefik.http.routers.mainsail.tls=true"
       - "traefik.http.routers.mainsail.tls.certresolver=cloudflare"
-      # Redirección manual (Aquí sí, porque es solo VPN)
       - "traefik.http.routers.mainsail-http.rule=Host(`${PRINTER_HOST}`)"
       - "traefik.http.routers.mainsail-http.entrypoints=web"
       - "traefik.http.routers.mainsail-http.middlewares=redirect-to-https@docker"
-      # Definimos el puerto usando el nombre por defecto del contenedor
       - "traefik.http.services.mainsail.loadbalancer.server.port=80"
 
   # Moonraker SOLO bajo el MISMO host de Mainsail
   moonraker:
-    profiles: []
     networks:
       - traefik-net
+    volumes:
+      - /dev/null:/opt/klipper/config/null
+      - /dev/null:/opt/klipper/docs/null
+      - /run/dbus:/run/dbus
+      - /run/systemd:/run/systemd
+      - run:/opt/printer_data/run
+      - ${PRIND_DATA_DIR}/gcodes:/opt/printer_data/gcodes
+      - log:/opt/printer_data/logs
+      - ${PRIND_DATA_DIR}/database:/opt/printer_data/database
+      - ${PRIND_DATA_DIR}/config:/opt/printer_data/config
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-net"
-      # Router principal (HTTPS)
       - "traefik.http.routers.moonraker.rule=Host(`${PRINTER_HOST}`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
       - "traefik.http.routers.moonraker.entrypoints=websecure"
       - "traefik.http.routers.moonraker.tls=true"
       - "traefik.http.routers.moonraker.tls.certresolver=cloudflare"
       - "traefik.http.routers.moonraker.priority=100"
-      # Redirección manual
       - "traefik.http.routers.moonraker-http.rule=Host(`${PRINTER_HOST}`) && PathRegexp(`^/(websocket|printer|api|access|machine|server)`)"
       - "traefik.http.routers.moonraker-http.entrypoints=web"
       - "traefik.http.routers.moonraker-http.middlewares=redirect-to-https@docker"
-      # Definimos el puerto usando el nombre por defecto del contenedor
       - "traefik.http.services.moonraker.loadbalancer.server.port=7125"
+
 networks:
   traefik-net:
     external: true
